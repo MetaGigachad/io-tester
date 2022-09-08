@@ -1,0 +1,27 @@
+$test NumberOne in
+Hello world!
+Hello world!
+Hello world!
+$out
+Hello world!
+Hello world!
+Hello world!
+$end
+
+$test NumberTwo in
+Well done!
+Well done!
+Well done!
+$out
+Well done!
+Well done!
+Well done!
+$end
+
+# This is comment. In order for it to work you need to leave space after hashtag
+
+$unused NumberThree in
+Unused test!
+$out
+Unused tst
+$end
