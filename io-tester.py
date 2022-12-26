@@ -88,13 +88,16 @@ def parse_args() -> Namespace:
     arg_parser.add_argument("test_file", type=PosixPath, default=SUPPRESS,
                             help="path to file with test data (.iotest preferred)")
     arg_parser.add_argument(
-        "--comp",
         "-c",
+        "--comp",
         type=CompType,
         choices=list(CompType),
         default=CompType.NO_NEW_LINE,
         help="comparator type for outputs: EXACT, NO_NEW_LINE, NO_MULTIPLE_SPACES, NO_ALL"
     )
+
+    arg_parser.add_argument("-f", "--filemode", action="store_true",
+                            help="use input.txt and output.txt for program io")
 
     args = arg_parser.parse_args()
 
@@ -118,17 +121,35 @@ def main():
     for test in test_file.tests:
         print(f"Test {test.name}", end="\r")
 
-        with open(".temp", "w") as tmp:
-            tmp.write(test.input)
+        output = ''
+        if args.filemode:
+            with open("input.txt", "w") as f:
+                f.write(test.input)
 
-        run_result = subprocess.run(
-            f"cat .temp | {args.executable.absolute()}",
-            shell=True,
-            text=True,
-            check=True,
-            stdout=subprocess.PIPE,
-        )
-        subprocess.run("rm .temp", shell=True, text=True, check=True)
+            subprocess.run(
+                f"{args.executable.absolute()}",
+                shell=True,
+                text=True,
+                check=True,
+                stdout=subprocess.PIPE,
+            )
+            
+            with open("output.txt", "r") as f:
+                output = f.read()
+
+            subprocess.run("rm input.txt output.txt", shell=True, text=True, check=True)
+        else:
+            with open(".temp", "w") as tmp:
+                tmp.write(test.input)
+
+            output = subprocess.run(
+                f"cat .temp | {args.executable.absolute()}",
+                shell=True,
+                text=True,
+                check=True,
+                stdout=subprocess.PIPE,
+            ).stdout
+            subprocess.run("rm .temp", shell=True, text=True, check=True)
 
         test_result = False
 
@@ -136,14 +157,14 @@ def main():
 
         match args.comp:
             case CompType.EXACT:
-                test_result = run_result.stdout == test.output
+                test_result = output == test.output
             case CompType.NO_NEW_LINE:
-                test_result = filter_char(run_result.stdout, "\n") == filter_char(test.output, "\n")
+                test_result = filter_char(output, "\n") == filter_char(test.output, "\n")
             case CompType.NO_MULTIPLE_SPACES:
-                test_result = filter_char(run_result.stdout, " ") == filter_char(test.output, " ")
+                test_result = filter_char(output, " ") == filter_char(test.output, " ")
             case CompType.NO_ALL:
                 preprocess = lambda text: filter_char(filter_char(text, "\n"), " ")
-                test_result = preprocess(run_result.stdout) == preprocess(test.output)
+                test_result = preprocess(output) == preprocess(test.output)
 
         if test_result:
             print(colored(f"Test {test.name}", "green"))
@@ -153,7 +174,7 @@ def main():
                 colored(f"\nTest output:", attrs=["bold"]),
                 f"\n{test.output}",
                 colored(f"\n{args.executable} output:", attrs=["bold"]),
-                f"\n{run_result.stdout}\n",
+                f"\n{output}\n",
             )
 
 

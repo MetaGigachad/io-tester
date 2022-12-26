@@ -20,7 +20,7 @@ $end
 
 # This is comment. In order for it to work you need to leave space after hashtag
 
-$unused NumberThree in
+$test NumberThree in
 Unused test!
 $out
 Unused tst
